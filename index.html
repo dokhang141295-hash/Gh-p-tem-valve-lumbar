@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<script>
+/* ===== DÁN LINK ỨNG DỤNG WEB (kết thúc bằng /exec) CỦA APPS SCRIPT VÀO DÒNG DƯỚI ===== */
+window.GHEP_TEM_API = '';
+</script>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: one phone-width column. A capture panel (valve cũ, tem mới, lưu) sits on top, the log of saved pairs below.
+   Palette: cool grey-green neutrals, one deep teal accent; green/amber/red are status colours only.
+   Type: Be Vietnam Pro for text (full Vietnamese support), IBM Plex Mono for every code. */
+:root {
+  --bg: #eef2f2;
+  --surface: #ffffff;
+  --surface-2: #f4f7f7;
+  --ink: #12211f;
+  --muted: #566866;
+  --line: #d3dddc;
+  --accent: #0b6e6a;
+  --accent-ink: #ffffff;
+  --accent-soft: #dcefed;
+  --ok: #17703a;
+  --ok-bg: #e0f2e6;
+  --warn: #8a5300;
+  --warn-bg: #fbefd5;
+  --bad: #b3261e;
+  --bad-bg: #fbe3e0;
+  --font-body: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1514;
+    --surface: #152120;
+    --surface-2: #1b2928;
+    --ink: #e7f0ef;
+    --muted: #93a8a5;
+    --line: #2a3b39;
+    --accent: #3fc6ba;
+    --accent-ink: #04201d;
+    --accent-soft: #163533;
+    --ok: #62d08a;
+    --ok-bg: #163824;
+    --warn: #f0b650;
+    --warn-bg: #3a2c10;
+    --bad: #ff8d83;
+    --bad-bg: #3f1b18;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1514;
+  --surface: #152120;
+  --surface-2: #1b2928;
+  --ink: #e7f0ef;
+  --muted: #93a8a5;
+  --line: #2a3b39;
+  --accent: #3fc6ba;
+  --accent-ink: #04201d;
+  --accent-soft: #163533;
+  --ok: #62d08a;
+  --ok-bg: #163824;
+  --warn: #f0b650;
+  --warn-bg: #3a2c10;
+  --bad: #ff8d83;
+  --bad-bg: #3f1b18;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.45;
+}
+.app { max-width: 560px; margin-inline: auto; padding-inline: 16px; padding-block: 16px 40px; display: grid; gap: 14px; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: 0; }
+.vh { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; pointer-events: none; }
+
+header.top { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+header.top h1 { margin: 0; font-size: 22px; line-height: 1.15; font-weight: 700; text-wrap: balance; }
+header.top p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+.count { text-align: right; flex: none; }
+.count b { display: block; font-family: var(--font-mono); font-size: 26px; line-height: 1; font-weight: 600; font-variant-numeric: tabular-nums; }
+.count span { color: var(--muted); font-size: 12px; }
+
+.banner { padding: 10px 12px; border-radius: var(--radius); background: var(--warn-bg); color: var(--warn); font-size: 13px; font-weight: 500; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.who { padding: 12px 14px; display: grid; gap: 6px; }
+label.lbl { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+input[type="text"], input[type="search"] {
+  width: 100%; min-height: 44px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--surface-2); color: var(--ink); font: inherit;
+}
+input.mono { font-family: var(--font-mono); font-size: 15px; }
+input:focus-visible, button:focus-visible, summary:focus-visible, label.btn:focus-within { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+.step { padding: 14px; display: grid; gap: 10px; border-top: 1px solid var(--line); }
+.step-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 10px; }
+.step-head h2 { margin: 0; font-size: 17px; font-weight: 700; white-space: nowrap; }
+.step-head p { margin: 0; font-size: 12.5px; color: var(--muted); flex: 1 1 150px; text-align: right; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 99px; font-size: 12.5px; font-weight: 600; }
+.chip.ok { background: var(--ok-bg); color: var(--ok); }
+.chip.warn { background: var(--warn-bg); color: var(--warn); }
+.chip.bad { background: var(--bad-bg); color: var(--bad); }
+.chip.idle { background: var(--surface-2); color: var(--muted); }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px; padding: 10px 16px;
+  border-radius: 10px; border: 1.5px solid var(--accent); background: var(--accent); color: var(--accent-ink);
+  font: inherit; font-weight: 700; font-size: 16px; cursor: pointer; text-align: center; user-select: none; -webkit-tap-highlight-color: transparent;
+}
+.btn.ghost { background: transparent; color: var(--accent); }
+.btn.quiet { background: transparent; color: var(--muted); border-color: var(--line); font-weight: 600; font-size: 14px; min-height: 44px; }
+.btn[aria-disabled="true"], .btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.small { min-height: 40px; font-size: 14px; padding: 6px 12px; }
+.btn svg { width: 20px; height: 20px; flex: none; }
+
+.result { display: grid; grid-template-columns: 64px 1fr; gap: 12px; align-items: start; }
+.result[hidden] { display: none !important; }
+.result img { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); background: var(--surface-2); }
+.codes { display: grid; gap: 4px; min-width: 0; }
+.kv { display: grid; gap: 1px; }
+.kv small { color: var(--muted); font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+.kv .mono { font-size: 15px; overflow-wrap: anywhere; }
+.big { font-family: var(--font-mono); font-weight: 600; font-size: 19px; line-height: 1.2; overflow-wrap: anywhere; }
+.big em { font-style: normal; color: var(--accent); }
+.note { font-size: 13px; color: var(--muted); margin: 0; }
+.note.bad { color: var(--bad); font-weight: 500; }
+.note.warn { color: var(--warn); font-weight: 500; }
+.row-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.confirm { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 8px 12px; border-radius: 8px; background: var(--warn-bg); color: var(--warn); font-size: 14px; font-weight: 600; cursor: pointer; }
+.confirm input { width: 22px; height: 22px; flex: none; accent-color: var(--accent); }
+.flags { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 4px; }
+.tools { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+details.manual { font-size: 13px; }
+details.manual summary { cursor: pointer; color: var(--muted); font-weight: 600; padding-block: 4px; }
+details.manual .fields { display: grid; gap: 8px; padding-top: 8px; }
+
+.savebar { padding: 14px; display: grid; gap: 8px; border-top: 1px solid var(--line); background: var(--surface-2); border-radius: 0 0 var(--radius) var(--radius); }
+.msg { min-height: 20px; font-size: 14px; margin: 0; font-weight: 500; }
+.msg.ok { color: var(--ok); }
+.msg.bad { color: var(--bad); }
+.msg.idle { color: var(--muted); font-weight: 400; }
+
+.log-head { display: grid; gap: 10px; }
+.log-head .line { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.log-head h2 { margin: 0; font-size: 17px; font-weight: 700; }
+.list { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.item { border-top: 1px solid var(--line); }
+.item:first-child { border-top: 0; }
+.item > button.row {
+  width: 100%; display: grid; grid-template-columns: 54px 1fr; gap: 10px; text-align: left; padding: 12px 14px;
+  background: transparent; border: 0; color: inherit; font: inherit; cursor: pointer;
+}
+.item .stt { font-family: var(--font-mono); font-weight: 600; font-size: 15px; color: var(--accent); padding-top: 1px; }
+.item .pair { display: grid; gap: 2px; min-width: 0; }
+.item .pair .a { font-family: var(--font-mono); font-size: 13.5px; overflow-wrap: anywhere; }
+.item .pair .b { font-family: var(--font-mono); font-size: 13.5px; font-weight: 600; overflow-wrap: anywhere; }
+.item .pair .b::before { content: "→ "; color: var(--muted); font-weight: 400; }
+.item .meta { font-size: 12px; color: var(--muted); }
+.detail { padding: 0 14px 14px 78px; display: grid; gap: 10px; }
+.detail img { width: 100%; max-width: 360px; border-radius: 8px; border: 1px solid var(--line); }
+.empty { padding: 28px 18px; text-align: center; color: var(--muted); }
+.empty b { display: block; color: var(--ink); font-size: 16px; margin-bottom: 4px; }
+.more { padding: 12px; text-align: center; border-top: 1px solid var(--line); }
+.foot { font-size: 12px; color: var(--muted); text-align: center; }
+.spin { width: 18px; height: 18px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--accent); animation: sp .8s linear infinite; }
+@keyframes sp { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spin { animation-duration: 3s; } }
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="top">
+    <div>
+      <h1>Ghép tem valve</h1>
+      <p>Mỗi lần ghi lại một valve cũ và tem mới thay vào</p>
+    </div>
+    <div class="count"><b id="cnt">–</b><span>cặp đã lưu</span></div>
+  </header>
+
+  <div id="banner" class="banner" hidden><span id="bannerTxt"></span> <button class="btn small quiet" type="button" id="btnRetry" hidden style="margin-top:8px">Thử lại</button></div>
+
+  <section class="panel" aria-label="Chụp và lưu một cặp">
+    <div class="who">
+      <label class="lbl" for="who">Người chụp</label>
+      <input id="who" type="text" autocomplete="name" maxlength="40" placeholder="Tên của anh/chị">
+    </div>
+
+    <div class="step" id="stepValve">
+      <div class="step-head">
+        <h2>Valve cũ</h2>
+        <p>Chụp rõ giờ ngày, dãy 12 số và mã L…</p>
+      </div>
+      <input class="vh" id="fileValve" type="file" accept="image/*" capture="environment">
+      <label class="btn" id="btnValve" for="fileValve">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+        <span id="btnValveTxt">Chụp tem valve cũ</span>
+      </label>
+      <div class="result" id="resValve" hidden>
+        <img id="imgValve" alt="Ảnh tem valve cũ">
+        <div class="codes">
+          <div id="stValve"></div>
+          <div class="kv"><small>Mã chung (L… + 12 số)</small><div class="big" id="codeValve"></div></div>
+          <div class="kv"><small>Đọc được</small><div class="mono" id="partsValve"></div></div>
+          <p class="note" id="noteValve"></p>
+          <label class="confirm" id="confirmSerial" hidden><input type="checkbox" id="chkSerial"><span>Đã kiểm tra, vẫn lưu dù trùng dãy 12 số</span></label>
+          <label class="confirm" id="confirmLook" hidden><input type="checkbox" id="chkLook"><span>Đã so mắt với nhãn, mã L… và 12 số đúng</span></label>
+          <div class="row-actions" id="actValve" hidden>
+            <button class="btn small ghost" type="button" id="deepValve">Đọc kỹ hơn</button>
+          </div>
+        </div>
+      </div>
+      <details class="manual" id="manValve">
+        <summary>Không đọc được? Sửa hoặc nhập tay</summary>
+        <div class="fields">
+          <label class="lbl" for="mValve">Mã valve (L + 9 số)</label>
+          <input id="mValve" class="mono" type="text" inputmode="text" autocapitalize="characters" maxlength="10" placeholder="L002867109">
+          <label class="lbl" for="mSerial">Dãy ngày giờ (12 số)</label>
+          <input id="mSerial" class="mono" type="text" inputmode="numeric" maxlength="12" placeholder="260918230415">
+          <button class="btn small quiet" type="button" id="useValve">Dùng mã này</button>
+        </div>
+      </details>
+    </div>
+
+    <div class="step" id="stepTem">
+      <div class="step-head">
+        <h2>Tem mới</h2>
+        <p>Chụp rõ ô vuông Data Matrix, một tem trong khung</p>
+      </div>
+      <input class="vh" id="fileTem" type="file" accept="image/*" capture="environment">
+      <label class="btn" id="btnTem" for="fileTem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+        <span id="btnTemTxt">Chụp tem mới</span>
+      </label>
+      <div class="result" id="resTem" hidden>
+        <img id="imgTem" alt="Ảnh tem mới">
+        <div class="codes">
+          <div id="stTem"></div>
+          <div class="kv"><small>QR code mới (Data Matrix)</small><div class="big" id="codeTem"></div></div>
+          <div class="kv" id="kvPrint" hidden><small>Số in ngoài tem</small><div class="mono" id="printTem"></div></div>
+          <p class="note" id="noteTem"></p>
+        </div>
+      </div>
+      <details class="manual" id="manTem">
+        <summary>Không đọc được? Nhập tay</summary>
+        <div class="fields">
+          <label class="lbl" for="mTem">QR code mới (12 số)</label>
+          <input id="mTem" class="mono" type="text" inputmode="numeric" maxlength="12" placeholder="260612001002">
+          <label class="lbl" for="mPrint">Số in ngoài tem (không bắt buộc)</label>
+          <input id="mPrint" class="mono" type="text" inputmode="numeric" maxlength="12" placeholder="260804001002">
+          <button class="btn small quiet" type="button" id="useTem">Dùng mã này</button>
+        </div>
+      </details>
+    </div>
+
+    <div class="savebar">
+      <button class="btn" type="button" id="btnSave" disabled>Lưu cặp này</button>
+      <p class="msg idle" id="msg" role="status" aria-live="polite">Chụp valve cũ, rồi chụp tem mới.</p>
+      <button class="btn quiet" type="button" id="btnReset" hidden>Làm lại từ đầu</button>
+    </div>
+  </section>
+
+  <section class="log-head" aria-label="Các cặp đã lưu">
+    <div class="line">
+      <h2>Đã ghép</h2>
+      <div class="tools">
+        <button class="btn small quiet" type="button" id="btnDup">Kiểm tra trùng</button>
+        <button class="btn small ghost" type="button" id="btnExport">Xuất Excel</button>
+      </div>
+    </div>
+    <input id="find" type="search" placeholder="Tìm theo mã valve, mã tem, STT, tên" autocomplete="off">
+    <div class="list" id="list">
+      <div class="empty"><b>Đang tải danh sách…</b>Các cặp đã lưu sẽ hiện ở đây.</div>
+    </div>
+  </section>
+
+  <p class="foot" id="engine">Bộ đọc Data Matrix: đang kiểm tra…</p>
+  <p class="foot" id="engine2">Bộ đọc chữ valve: sẽ nạp khi chụp ảnh đầu tiên</p>
+</main>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const RE_VALVE = /^L\d{9}$/, RE_SERIAL = /^\d{12}$/, RE_TEM = /^\d{12}$/;
+  const CDN = {
+    zxing: 'https://cdn.jsdelivr.net/npm/zxing-wasm@2.2.1/dist/iife/reader/index.js',
+    zxingWasm: 'https://cdn.jsdelivr.net/npm/zxing-wasm@2.2.1/dist/reader/zxing_reader.wasm',
+    tess: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js',
+    tessLang: 'https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng@1.0.0/4.0.0_best_int',
+    xlsx: 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+  };
+
+  const S = {
+    online: false, sig: '', sheetUrl: '',
+    valve: null,   // {thumb, ocrBlob, parsed, passes, phase, src, confirmed, looked, forceWarn}
+    tem: null,     // {thumb, code, count, src, phase, err, print, printPhase, box, bigBlob}
+    saving: false, rows: [], byCode: new Map(), byTem: new Map(), byValve: new Map(), bySerial: new Map(), cntL: new Map(), cntS: new Map(), cntT: new Map(),
+    dupOnly: false, maxStt: 0, loaded: false, open: null, filter: '', show: 40, photos: new Map(), delArm: null, tokenV: 0, tokenT: 0,
+  };
+
+  /* ---------- small helpers ---------- */
+  const pad = (n) => String(n).padStart(4, '0');
+  const store = {
+    get(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) { } },
+  };
+  function setMsg(text, kind) { const m = $('msg'); m.textContent = text; m.className = 'msg ' + (kind || 'idle'); }
+  function chip(el, kind, text) { el.innerHTML = ''; const c = document.createElement('span'); c.className = 'chip ' + kind; c.textContent = text; el.appendChild(c); }
+  function fmtTime(s) {
+    const m = String(s || '').match(/^(\d{4})-(\d\d)-(\d\d)[ T](\d\d):(\d\d)/);
+    return m ? m[3] + '/' + m[2] + ' ' + m[4] + ':' + m[5] : '';
+  }
+  function blobToDataURL(b) { return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(b); }); }
+  const jsLoads = {};
+  function loadScript(url) {
+    if (!jsLoads[url]) jsLoads[url] = new Promise((ok, no) => { const el = document.createElement('script'); el.src = url; el.onload = ok; el.onerror = () => { delete jsLoads[url]; no(new Error('load')); }; document.head.appendChild(el); });
+    return jsLoads[url];
+  }
+  const API_URL = (function () {
+    let u = '';
+    try { const q = new URLSearchParams(location.search).get('api'); if (q) { localStorage.setItem('gt_api', q); } u = localStorage.getItem('gt_api') || ''; } catch (e) { }
+    return (window.GHEP_TEM_API || '').indexOf('https://') === 0 ? window.GHEP_TEM_API : u;
+  })();
+  function rpc(name, ...args) {
+    if (!API_URL) return Promise.reject({ message: 'no-api' });
+    const ctl = new AbortController();
+    const to = setTimeout(() => ctl.abort(), 45000);
+    // text/plain: yêu cầu "đơn giản", không bị chặn CORS preflight của Apps Script
+    return fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ fn: name, args: args }), signal: ctl.signal })
+      .then((r) => { if (!r.ok) throw { message: 'http ' + r.status }; return r.json(); })
+      .then((j) => { if (j && j.__err) throw { message: j.__err }; return j; })
+      .finally(() => clearTimeout(to));
+  }
+  function showBanner(text, retry) { $('banner').hidden = !text; $('bannerTxt').textContent = text || ''; $('btnRetry').hidden = !retry; }
+
+  /* ---------- duplicate indexes ---------- */
+  function inc(m, k) { m.set(k, (m.get(k) || 0) + 1); }
+  function indexPairs(arr) {
+    S.byValve = new Map(); S.bySerial = new Map(); S.byCode = new Map(); S.byTem = new Map(); S.cntC = new Map(); S.cntS = new Map(); S.cntT = new Map();
+    for (let i = arr.length - 1; i >= 0; i--) { // oldest STT first, so the first one saved is the one named in warnings
+      const r = arr[i];
+      if (!S.byValve.has(r.valve)) S.byValve.set(r.valve, r);
+      if (!S.bySerial.has(r.serial)) S.bySerial.set(r.serial, r);
+      if (!S.byCode.has(r.code)) S.byCode.set(r.code, r);
+      if (!S.byTem.has(r.tem)) S.byTem.set(r.tem, r);
+      inc(S.cntC, r.code); inc(S.cntS, r.serial); inc(S.cntT, r.tem);
+    }
+  }
+  function dupReasons(r) {
+    const out = [];
+    if ((S.cntC.get(r.code) || 0) > 1) out.push('Trùng mã chung');
+    if ((S.cntS.get(r.serial) || 0) > 1) out.push('Trùng dãy 12 số');
+    if ((S.cntT.get(r.tem) || 0) > 1) out.push('Trùng tem mới');
+    return out;
+  }
+
+  /* ---------- photo preparation ---------- */
+  async function prep(file) {
+    let bmp;
+    try { bmp = await createImageBitmap(file, { imageOrientation: 'from-image' }); }
+    catch (e) {
+      bmp = await new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = URL.createObjectURL(file); });
+    }
+    const w0 = bmp.width, h0 = bmp.height;
+    const mk = (max, q) => new Promise((res) => {
+      const k = Math.min(1, max / Math.max(w0, h0));
+      const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w0 * k)); c.height = Math.max(1, Math.round(h0 * k));
+      c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+      c.toBlob((b) => res({ blob: b, w: c.width, h: c.height }), 'image/jpeg', q);
+    });
+    const [big, ocr, th] = await Promise.all([mk(2000, 0.9), mk(1400, 0.85), mk(480, 0.5)]);
+    return { big, ocr: ocr.blob, thumb: await blobToDataURL(th.blob) };
+  }
+
+  /* ---------- Data Matrix engine: zxing-wasm from CDN -> native BarcodeDetector -> manual ---------- */
+  let zxReady = null;
+  function initZX() {
+    if (zxReady) return zxReady;
+    zxReady = (async () => {
+      if (!window.ZXingWASM) await loadScript(CDN.zxing);
+      if (!window.ZXingWASM) throw new Error('lib');
+      ZXingWASM.setZXingModuleOverrides({ locateFile: (path, prefix) => (/\.wasm$/.test(path) ? CDN.zxingWasm : prefix + path) });
+      await ZXingWASM.prepareZXingModule({ fireImmediately: true });
+      return true;
+    })();
+    zxReady.catch(() => { zxReady = null; });
+    return zxReady;
+  }
+  function pickNearest(list, w, h) {
+    return list.map((x) => ({ ...x, d: Math.hypot(x.cx - w / 2, x.cy - h / 2) })).sort((a, b) => a.d - b.d);
+  }
+  async function decodeDM(big) {
+    const out = { engine: '', list: [] };
+    try {
+      await initZX();
+      const res = await ZXingWASM.readBarcodes(big.blob, { formats: ['DataMatrix'], tryHarder: true, maxNumberOfSymbols: 12 });
+      out.engine = 'wasm';
+      out.list = res.filter((r) => r.text).map((r) => {
+        const p = r.position; const pts = [p.topLeft, p.topRight, p.bottomRight, p.bottomLeft];
+        const xs = pts.map((q) => q.x), ys = pts.map((q) => q.y);
+        return { text: r.text.trim(), cx: pts.reduce((a, q) => a + q.x, 0) / 4, cy: pts.reduce((a, q) => a + q.y, 0) / 4, box: { x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xs), y1: Math.max(...ys) } };
+      });
+      return { ...out, list: pickNearest(out.list, big.w, big.h) };
+    } catch (e) { /* wasm not available here, try native */ }
+    if ('BarcodeDetector' in window) {
+      try {
+        const det = new BarcodeDetector({ formats: ['data_matrix'] });
+        const bmp = await createImageBitmap(big.blob);
+        const res = await det.detect(bmp);
+        out.engine = 'native';
+        out.list = res.filter((r) => r.rawValue).map((r) => ({ text: r.rawValue.trim(), cx: r.boundingBox.x + r.boundingBox.width / 2, cy: r.boundingBox.y + r.boundingBox.height / 2, box: { x0: r.boundingBox.x, y0: r.boundingBox.y, x1: r.boundingBox.x + r.boundingBox.width, y1: r.boundingBox.y + r.boundingBox.height } }));
+        return { ...out, list: pickNearest(out.list, big.w, big.h) };
+      } catch (e) { }
+    }
+    out.engine = 'none';
+    return out;
+  }
+  function setEngine(kind) {
+    $('engine').textContent = kind === 'wasm' ? 'Bộ đọc Data Matrix: sẵn sàng' : kind === 'native' ? 'Bộ đọc Data Matrix: dùng bộ đọc của trình duyệt' : 'Bộ đọc Data Matrix: không dùng được, hãy nhập tay mã tem';
+  }
+
+  /* ---------- text OCR engine (Tesseract in the phone browser, no account needed) ---------- */
+  let tessReady = null;
+  function setOcrStatus(t) { $('engine2').textContent = 'Bộ đọc chữ valve: ' + t; }
+  function getTess() {
+    if (tessReady) return tessReady;
+    setOcrStatus('đang nạp (lần đầu mất vài giây)…');
+    tessReady = (async () => {
+      if (!window.Tesseract) await loadScript(CDN.tess);
+      const w = await Tesseract.createWorker('eng', 1, { langPath: CDN.tessLang, gzip: true });
+      setOcrStatus('sẵn sàng');
+      return w;
+    })();
+    tessReady.catch(() => { tessReady = null; setOcrStatus('không dùng được, hãy nhập tay mã valve'); });
+    return tessReady;
+  }
+  let ocrChain = Promise.resolve();
+  function ocrRun(img, params) {
+    const job = ocrChain.then(async () => {
+      const w = await getTess();
+      await w.setParameters(params);
+      const r = await w.recognize(img);
+      return (r && r.data && r.data.text) || '';
+    });
+    ocrChain = job.catch(() => { });
+    return job;
+  }
+  const P_VALVE = (psm) => ({ tessedit_char_whitelist: 'LEAR.OK0123456789:. ', tessedit_pageseg_mode: String(psm) });
+  const P_DIGITS = (psm) => ({ tessedit_char_whitelist: '0123456789', tessedit_pageseg_mode: String(psm) });
+
+  /* ---------- finding the white label inside the photo ---------- */
+  function findLabel(rgba, W, H) {
+    const gray = new Uint8Array(W * H);
+    for (let i = 0; i < W * H; i++) gray[i] = (rgba[i * 4] * 77 + rgba[i * 4 + 1] * 150 + rgba[i * 4 + 2] * 29) >> 8;
+    const otsu = (lo) => {
+      const hist = new Array(256).fill(0); let n = 0;
+      for (let i = 0; i < gray.length; i++) if (gray[i] >= lo) { hist[gray[i]]++; n++; }
+      let sum = 0; for (let t = 0; t < 256; t++) sum += t * hist[t];
+      let sb = 0, wb = 0, best = -1, thr = lo;
+      for (let t = lo; t < 256; t++) { wb += hist[t]; if (!wb) continue; const wf = n - wb; if (!wf) break; sb += t * hist[t]; const mb = sb / wb, mf = (sum - sb) / wf; const v = wb * wf * (mb - mf) * (mb - mf); if (v > best) { best = v; thr = t; } }
+      return thr;
+    };
+    const t1 = otsu(0), t2 = otsu(t1 + 1);
+    const mask = new Uint8Array(W * H); for (let i = 0; i < mask.length; i++) mask[i] = gray[i] > t2 ? 1 : 0;
+    const seen = new Uint8Array(W * H); let best = null; const stack = [];
+    for (let s = 0; s < mask.length; s++) {
+      if (!mask[s] || seen[s]) continue;
+      let minx = W, maxx = 0, miny = H, maxy = 0, cnt = 0; stack.length = 0; stack.push(s); seen[s] = 1;
+      while (stack.length) {
+        const p = stack.pop(); const x = p % W, y = (p / W) | 0; cnt++;
+        if (x < minx) minx = x; if (x > maxx) maxx = x; if (y < miny) miny = y; if (y > maxy) maxy = y;
+        if (x > 0 && mask[p - 1] && !seen[p - 1]) { seen[p - 1] = 1; stack.push(p - 1); }
+        if (x < W - 1 && mask[p + 1] && !seen[p + 1]) { seen[p + 1] = 1; stack.push(p + 1); }
+        if (y > 0 && mask[p - W] && !seen[p - W]) { seen[p - W] = 1; stack.push(p - W); }
+        if (y < H - 1 && mask[p + W] && !seen[p + W]) { seen[p + W] = 1; stack.push(p + W); }
+      }
+      if (!best || cnt > best.cnt) best = { cnt, x: minx, y: miny, w: maxx - minx + 1, h: maxy - miny + 1 };
+    }
+    if (!best || best.cnt < W * H * 0.03) return null;
+    return best;
+  }
+  function labelCanvas(bmp, outW) {
+    // crop around the white label; fall back to the whole photo
+    const sw0 = 240, k0 = sw0 / bmp.width, sh0 = Math.max(1, Math.round(bmp.height * k0));
+    const sm = document.createElement('canvas'); sm.width = sw0; sm.height = sh0;
+    const sctx = sm.getContext('2d'); sctx.drawImage(bmp, 0, 0, sw0, sh0);
+    let box = null;
+    try { const id = sctx.getImageData(0, 0, sw0, sh0); box = findLabel(id.data, sw0, sh0); } catch (e) { box = null; }
+    let sx = 0, sy = 0, sw = bmp.width, sh = bmp.height;
+    if (box) {
+      const m = 0.02 * bmp.width;
+      sx = Math.max(0, box.x / k0 - m); sy = Math.max(0, box.y / k0 - m);
+      sw = Math.min(bmp.width - sx, box.w / k0 + 2 * m); sh = Math.min(bmp.height - sy, box.h / k0 + 2 * m);
+    }
+    const k = outW / sw;
+    const c = document.createElement('canvas'); c.width = Math.round(sw * k); c.height = Math.round(sh * k);
+    c.getContext('2d').drawImage(bmp, sx, sy, sw, sh, 0, 0, c.width, c.height);
+    return c;
+  }
+  function rotated(c, deg) {
+    const r = document.createElement('canvas'); const swap = deg === 90 || deg === 270;
+    r.width = swap ? c.height : c.width; r.height = swap ? c.width : c.height;
+    const x = r.getContext('2d'); x.translate(r.width / 2, r.height / 2); x.rotate(deg * Math.PI / 180); x.drawImage(c, -c.width / 2, -c.height / 2);
+    return r;
+  }
+  function stretched(c) {
+    const r = document.createElement('canvas'); r.width = c.width; r.height = c.height;
+    const x = r.getContext('2d'); x.drawImage(c, 0, 0);
+    const id = x.getImageData(0, 0, r.width, r.height), d = id.data; const hist = new Array(256).fill(0);
+    for (let i = 0; i < d.length; i += 4) { const g = (d[i] * 77 + d[i + 1] * 150 + d[i + 2] * 29) >> 8; d[i] = g; hist[g]++; }
+    const n = d.length / 4; let acc = 0, lo = 0, hi = 255;
+    for (let t = 0; t < 256; t++) { acc += hist[t]; if (acc > n * 0.02) { lo = t; break; } }
+    acc = 0; for (let t = 255; t >= 0; t--) { acc += hist[t]; if (acc > n * 0.02) { hi = t; break; } }
+    const span = Math.max(30, hi - lo);
+    for (let i = 0; i < d.length; i += 4) { const v = Math.max(0, Math.min(255, ((d[i] - lo) * 255) / span)); d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255; }
+    x.putImageData(id, 0, 0); return r;
+  }
+
+  /* ---------- reading the old valve label ---------- */
+  function parseValveText(text) {
+    const t = String(text || '').toUpperCase();
+    const valves = [], serials = [];
+    for (const m of t.matchAll(/L+[.\s]{0,2}([0-9O]{9})(?![0-9O])/g)) valves.push('L' + m[1].replace(/O/g, '0'));
+    for (const m of t.matchAll(/(^|[^0-9O])([0-9O]{12})(?![0-9O])/g)) serials.push(m[2].replace(/O/g, '0'));
+    const tm = t.match(/(\d\d):(\d\d):(\d\d)/), dm = t.match(/(\d\d)\.(\d\d)\.(\d\d)/);
+    return { valves: [...new Set(valves)], serials: [...new Set(serials)], time: tm ? tm[0] : '', date: dm ? dm[0] : '', derived: tm && dm ? dm[3] + dm[2] + dm[1] + tm[1] + tm[2] + tm[3] : '' };
+  }
+  function mergePasses(passes) {
+    const cv = new Map(), cs = new Map();
+    passes.forEach((p) => { p.valves.forEach((x) => inc(cv, x)); p.serials.forEach((x) => inc(cs, x)); });
+    const derivedSet = new Set(passes.map((p) => p.derived).filter(Boolean));
+    const pick = (m, pref) => [...m.entries()].sort((a, b) => (b[1] - a[1]) || ((pref && pref.has(b[0]) ? 1 : 0) - (pref && pref.has(a[0]) ? 1 : 0)))[0];
+    const bv = pick(cv), bs = pick(cs, derivedSet);
+    const valve = bv ? bv[0] : '', serial = bs ? bs[0] : '', vVotes = bv ? bv[1] : 0, sVotes = bs ? bs[1] : 0;
+    let time = '', date = '', strong = false;
+    if (serial) { const hit = passes.find((p) => p.derived === serial); if (hit) { strong = true; time = hit.time; date = hit.date; } }
+    const issues = [];
+    if (!RE_VALVE.test(valve)) issues.push('chưa đọc được mã L… (chữ L và 9 số)');
+    if (!RE_SERIAL.test(serial)) issues.push('chưa đọc được dãy 12 số');
+    const ok = issues.length === 0;
+    const look = [];
+    if (ok) {
+      if (vVotes < 2) look.push('mã L… mới đọc được một lần');
+      if (sVotes < 2 && !strong) look.push('dãy 12 số mới đọc được một lần');
+      if (!strong) look.push('chưa đối chiếu được dòng giờ và ngày');
+    }
+    const alts = [...cv.keys()].filter((x) => x !== valve).concat([...cs.keys()].filter((x) => x !== serial));
+    return { valve, serial, time, date, ok, issues, needsLook: ok && look.length > 0 && !(strong && vVotes >= 2), look, strong, vVotes, sVotes, alts };
+  }
+
+  async function readValve(deep) {
+    const v = S.valve; if (!v || !v.ocrBlob) return;
+    const my = ++S.tokenV;
+    v.confirmed = false; v.forceWarn = null; v.looked = false;
+    v.phase = 'reading'; v.progress = 'Đang đọc ảnh…'; renderValve(); renderSave();
+    try {
+      await getTess();
+      const bmp = await createImageBitmap(v.ocrBlob);
+      if (!v.crop) v.crop = labelCanvas(bmp, 1000);
+      if (!v.passes) v.passes = [];
+      const plan = deep
+        ? [() => ocrRun(labelCanvas(bmp, 700), P_VALVE(6)), () => ocrRun(stretched(v.crop), P_VALVE(11)), () => ocrRun(stretched(v.crop), P_VALVE(6))]
+        : [() => ocrRun(v.crop, P_VALVE(6)), () => ocrRun(v.crop, P_VALVE(11)), () => ocrRun(v.crop, P_VALVE(4))];
+      for (let i = 0; i < plan.length; i++) {
+        v.progress = 'Đang đọc ảnh (lần ' + (i + 1) + '/' + plan.length + ')…'; renderValve();
+        const text = await plan[i]();
+        if (my !== S.tokenV) return;
+        v.passes.push(parseValveText(text));
+        const m = mergePasses(v.passes);
+        if (v.passes.length >= 2 && m.ok && m.strong && m.vVotes >= 2) break;
+      }
+      let m = mergePasses(v.passes);
+      if (!m.valve && !m.serial && !v.rotTried) {
+        v.rotTried = true; // label may be sideways in the photo
+        for (const deg of [90, 270]) {
+          v.progress = 'Thử xoay ảnh…'; renderValve();
+          const rc = rotated(v.crop, deg);
+          for (const psm of [6, 11]) { const text = await ocrRun(rc, P_VALVE(psm)); if (my !== S.tokenV) return; v.passes.push(parseValveText(text)); }
+          m = mergePasses(v.passes); if (m.valve || m.serial) break;
+        }
+      }
+      if (my !== S.tokenV) return;
+      v.parsed = m; v.err = ''; v.src = 'ocr';
+      if (!m.ok) { // give the person what was read so only the wrong part needs fixing
+        $('mValve').value = m.valve || (m.alts.find((x) => /^L/.test(x)) || ''); $('mSerial').value = m.serial || (m.alts.find((x) => /^\d{12}$/.test(x)) || '');
+        $('manValve').open = true;
+      }
+    } catch (e) {
+      if (my !== S.tokenV) return;
+      v.parsed = null;
+      v.err = 'Bộ đọc chữ chưa chạy được trên máy này. Nhập tay mã valve ở phần bên dưới.';
+      $('manValve').open = true;
+    }
+    v.phase = 'done'; renderValve(); renderSave();
+  }
+
+  /* ---------- printed number next to the Data Matrix (best effort, optional) ---------- */
+  async function cropForPrint(blob, b) {
+    const bmp = await createImageBitmap(blob);
+    const s = Math.max(b.x1 - b.x0, b.y1 - b.y0, 20), cy = (b.y0 + b.y1) / 2;
+    const sx = Math.max(0, b.x0 - 0.35 * s), sw = Math.min(bmp.width - sx, 4.8 * s);
+    const sy = Math.max(0, cy - 0.95 * s), sh = Math.min(bmp.height - sy, 1.9 * s);
+    const k = Math.min(4, Math.max(1, 900 / sw));
+    const c = document.createElement('canvas'); c.width = Math.round(sw * k); c.height = Math.round(sh * k);
+    c.getContext('2d').drawImage(bmp, sx, sy, sw, sh, 0, 0, c.width, c.height);
+    return c;
+  }
+  function pickPrint(texts, code) {
+    const c12 = [];
+    texts.forEach((tx) => { String(tx || '').replace(/\s+/g, ' ').split(/[^0-9 ]+/).forEach((seg) => { const d = seg.replace(/\s/g, ''); if (/^\d{12}$/.test(d)) c12.push(d); }); String(tx || '').match(/\d{12}/g)?.forEach((d) => c12.push(d)); });
+    if (!c12.length) return '';
+    const tail = c12.find((d) => d.slice(-6) === code.slice(-6)); if (tail) return tail;
+    const head = c12.find((d) => d.slice(0, 2) === code.slice(0, 2)); return head || c12[0];
+  }
+  async function readPrint(my) {
+    const t = S.tem; if (!t || !t.box || !t.bigBlob) return;
+    t.print = ''; t.printPhase = 'reading'; renderTem(); renderSave();
+    try {
+      const crop = await cropForPrint(t.bigBlob, t.box);
+      const texts = [await ocrRun(crop, P_DIGITS(6))];
+      if (S.tem !== t || my !== S.tokenT) return;
+      let p = pickPrint(texts, t.code);
+      if (!p || p.slice(-6) !== t.code.slice(-6)) { texts.push(await ocrRun(crop, P_DIGITS(11))); p = pickPrint(texts, t.code); }
+      if (S.tem !== t || my !== S.tokenT) return;
+      t.print = RE_TEM.test(p) ? p : '';
+    } catch (e) { if (S.tem !== t || my !== S.tokenT) return; t.print = ''; }
+    t.printPhase = 'done'; t.bigBlob = null; renderTem(); renderSave();
+  }
+
+  /* ---------- rendering: valve step ---------- */
+  function validValve() { const v = S.valve; return v && v.phase === 'done' && v.parsed && v.parsed.ok ? v.parsed : null; }
+  function validTem() { const t = S.tem; return t && t.phase === 'done' && t.code && RE_TEM.test(t.code) ? t : null; }
+  function spinnerRow(el, text) {
+    el.innerHTML = ''; const row = document.createElement('div'); row.style.cssText = 'display:flex;gap:8px;align-items:center';
+    const sp = document.createElement('span'); sp.className = 'spin'; const tx = document.createElement('span'); tx.textContent = text; tx.className = 'note';
+    row.append(sp, tx); el.appendChild(row);
+  }
+
+  function renderValve() {
+    const v = S.valve, res = $('resValve');
+    $('btnValveTxt').textContent = v ? 'Chụp lại valve' : 'Chụp tem valve cũ';
+    $('btnValve').classList.toggle('ghost', !!v && v.phase === 'done' && !!validValve());
+    if (!v) { res.hidden = true; return; }
+    res.hidden = false;
+    if (v.thumb) $('imgValve').src = v.thumb;
+    const st = $('stValve'), note = $('noteValve'); note.className = 'note'; note.textContent = '';
+    $('actValve').hidden = true; $('confirmSerial').hidden = true; $('confirmLook').hidden = true;
+    if (v.phase === 'reading') {
+      spinnerRow(st, v.progress || 'Đang đọc ảnh…');
+      $('codeValve').textContent = '…'; $('partsValve').textContent = ''; return;
+    }
+    const p = v.parsed;
+    if (!p) {
+      chip(st, 'warn', 'Chưa đọc được'); $('codeValve').textContent = '–'; $('partsValve').textContent = '';
+      note.textContent = v.err || ''; note.className = 'note warn'; $('actValve').hidden = !v.ocrBlob; return;
+    }
+    const code = (p.valve || '') + (p.serial || '');
+    const cv = $('codeValve'); cv.textContent = '';
+    if (code) { cv.append(document.createTextNode(p.valve || '')); cv.append(document.createElement('wbr')); cv.append(document.createTextNode(p.serial || '')); } else cv.textContent = '–';
+    $('partsValve').textContent = [p.valve || '?', p.serial || '?'].join('  ·  ') + (p.date && p.time ? '  ·  ' + p.date + ' ' + p.time : '');
+    if (p.ok) {
+      if (v.src === 'manual') chip(st, 'ok', 'Đã nhập tay');
+      else if (p.needsLook) chip(st, 'warn', 'Đọc được, cần so mắt');
+      else chip(st, 'ok', 'Đọc đúng, khớp giờ ngày');
+      const dupL = S.byCode.get(p.valve + p.serial), dupS = S.bySerial.get(p.serial) || v.forceWarn;
+      if (dupL) {
+        chip(st, 'bad', 'Valve đã ghép rồi');
+        note.className = 'note bad'; note.textContent = 'Mã ' + p.valve + p.serial + ' đã ghép với tem ' + dupL.tem + ' (STT ' + pad(dupL.stt) + '). Không lưu trùng.';
+      } else if (dupS) {
+        chip(st, 'warn', 'Trùng dãy 12 số');
+        note.className = 'note warn';
+        note.textContent = 'Dãy ' + p.serial + ' đã có ở valve ' + dupS.valve + ' (STT ' + pad(dupS.stt) + '), mã L… khác. Có thể đọc nhầm hoặc hai valve cùng giây. Kiểm tra lại ảnh rồi tick xác nhận.';
+        $('confirmSerial').hidden = false; $('chkSerial').checked = !!v.confirmed;
+      } else if (v.src !== 'manual' && p.needsLook) {
+        note.className = 'note warn'; note.textContent = 'So với nhãn thật: ' + p.look.join('; ') + '. Đúng thì tick bên dưới, sai thì sửa ở phần nhập tay hoặc bấm Đọc kỹ hơn.';
+        $('confirmLook').hidden = false; $('chkLook').checked = !!v.looked; $('actValve').hidden = false;
+      }
+    } else {
+      chip(st, 'warn', 'Cần kiểm tra');
+      note.className = 'note warn'; note.textContent = 'Chưa đủ: ' + p.issues.join('; ') + '. Sửa ở phần nhập tay (đã điền phần đọc được), chụp lại cho rõ hơn hoặc bấm Đọc kỹ hơn.';
+      $('actValve').hidden = !v.ocrBlob;
+    }
+  }
+
+  /* ---------- rendering: tem step ---------- */
+  function renderTem() {
+    const t = S.tem, res = $('resTem');
+    $('btnTemTxt').textContent = t ? 'Chụp lại tem' : 'Chụp tem mới';
+    $('btnTem').classList.toggle('ghost', !!validTem());
+    if (!t) { res.hidden = true; return; }
+    res.hidden = false;
+    if (t.thumb) $('imgTem').src = t.thumb;
+    $('kvPrint').hidden = true;
+    const st = $('stTem'), note = $('noteTem'), code = $('codeTem'); note.className = 'note'; note.textContent = '';
+    if (t.phase === 'reading') { spinnerRow(st, 'Đang đọc Data Matrix…'); code.textContent = '…'; return; }
+    if (!t.code) {
+      chip(st, 'bad', 'Chưa đọc được'); code.textContent = '–';
+      note.className = 'note bad';
+      note.textContent = t.err || 'Không thấy Data Matrix. Chụp gần hơn, đủ sáng, giữ máy thẳng.';
+      return;
+    }
+    code.textContent = '';
+    code.append(document.createTextNode(t.code.slice(0, -6)));
+    const em = document.createElement('em'); em.textContent = t.code.slice(-6); code.appendChild(em);
+    if (!RE_TEM.test(t.code)) { chip(st, 'bad', 'Sai dạng mã'); note.className = 'note bad'; note.textContent = 'Mã đọc được không phải 12 số. Chụp lại tem khác hoặc nhập tay.'; return; }
+    chip(st, 'ok', t.src === 'manual' ? 'Đã nhập tay' : 'Đọc từ Data Matrix');
+    const mis = !!t.print && t.print.slice(-6) !== t.code.slice(-6);
+    if (t.printPhase) {
+      $('kvPrint').hidden = false;
+      $('printTem').textContent = t.printPhase === 'reading' ? 'Đang đọc…' : (t.print || 'Không đọc được (có thể bỏ qua)');
+    }
+    const dup = S.byTem.get(t.code);
+    if (dup) { note.className = 'note bad'; note.textContent = 'Tem này đã gắn cho valve ' + dup.code + ' (STT ' + pad(dup.stt) + '). Không lưu trùng.'; }
+    else if (mis) { note.className = 'note warn'; note.textContent = 'Số in ' + t.print + ' có 6 số cuối khác mã QR (' + t.code.slice(-6) + '). Kiểm tra đúng tem chưa, có thể đọc nhầm số in.'; }
+    else if (t.count > 1) { note.className = 'note warn'; note.textContent = 'Trong ảnh có ' + t.count + ' tem. Đã lấy tem gần giữa khung, 6 số cuối ' + t.code.slice(-6) + '. Đối chiếu với tem đang cầm.'; }
+  }
+
+  /* ---------- rendering: save bar ---------- */
+  function renderSave() {
+    const btn = $('btnSave'); const v = validValve(), t = validTem();
+    const name = $('who').value.trim();
+    const dupV = v && S.byCode.get(v.valve + v.serial), dupT = t && S.byTem.get(t.code);
+    const warnS = v && !dupV && (S.bySerial.get(v.serial) || (S.valve && S.valve.forceWarn));
+    const needTick = !!warnS && !(S.valve && S.valve.confirmed);
+    const needLook = !!(v && S.valve.src !== 'manual' && v.needsLook && !S.valve.looked);
+    const printBusy = !!(t && t.printPhase === 'reading');
+    const can = v && t && name && !dupV && !dupT && !needTick && !needLook && !printBusy && S.online && !S.saving;
+    btn.disabled = !can;
+    btn.textContent = S.saving ? 'Đang lưu…' : 'Lưu cặp này';
+    $('btnReset').hidden = !(S.valve || S.tem);
+    if (S.saving) return;
+    const cur = $('msg').className;
+    if (/\bok\b/.test(cur) && $('msg').dataset.sticky === '1') return;
+    if (!S.online) setMsg(S.loaded ? 'Mất kết nối máy chủ, chưa lưu được. Kiểm tra mạng.' : 'Đang kết nối máy chủ…', S.loaded ? 'bad' : 'idle');
+    else if (!v && !t) setMsg('Chụp valve cũ, rồi chụp tem mới.', 'idle');
+    else if (!name) setMsg('Nhập tên người chụp để lưu.', 'idle');
+    else if (dupV || dupT) setMsg('Có mã trùng với cặp đã lưu, xem ghi chú đỏ ở trên.', 'bad');
+    else if (needTick) setMsg('Dãy 12 số trùng valve khác. Kiểm tra rồi tick xác nhận để lưu.', 'bad');
+    else if (needLook) setMsg('So mã đọc được với nhãn thật rồi tick xác nhận để lưu.', 'bad');
+    else if (printBusy) setMsg('Đang đọc số in ngoài tem…', 'idle');
+    else if (v && !t) setMsg('Đã đọc valve. Chụp tem mới.', 'idle');
+    else if (!v && t) setMsg('Đã đọc tem. Chụp valve cũ.', 'idle');
+    else setMsg('Sẵn sàng. Bấm Lưu cặp này (STT dự kiến ' + pad(S.maxStt + 1) + ').', 'idle');
+  }
+
+  /* ---------- list ---------- */
+  function renderList() {
+    $('cnt').textContent = S.loaded ? String(S.rows.length) : '–';
+    const box = $('list'); box.innerHTML = '';
+    if (!S.loaded) { const e = document.createElement('div'); e.className = 'empty'; e.innerHTML = '<b>Đang tải danh sách…</b>Các cặp đã lưu sẽ hiện ở đây.'; box.appendChild(e); return; }
+    if (!S.rows.length) { const e = document.createElement('div'); e.className = 'empty'; e.innerHTML = '<b>Chưa có cặp nào</b>Chụp valve cũ, chụp tem mới rồi bấm Lưu. Cặp đầu tiên sẽ có STT 0001.'; box.appendChild(e); return; }
+    const q = S.filter.trim().toLowerCase();
+    let rows = S.rows;
+    if (q) rows = rows.filter((r) => (pad(r.stt) + ' ' + r.code + ' ' + r.tem + ' ' + (r.by || '')).toLowerCase().includes(q));
+    if (S.dupOnly) rows = rows.filter((r) => dupReasons(r).length);
+    if (!rows.length) { const e = document.createElement('div'); e.className = 'empty'; e.innerHTML = S.dupOnly ? '<b>Không có mã trùng</b>Mọi mã chung, dãy 12 số và tem mới đều khác nhau.' : '<b>Không thấy kết quả</b>Thử gõ ít ký tự hơn.'; box.appendChild(e); return; }
+    rows.slice(0, S.show).forEach((r) => box.appendChild(rowEl(r)));
+    if (rows.length > S.show) {
+      const m = document.createElement('div'); m.className = 'more';
+      const b = document.createElement('button'); b.className = 'btn small quiet'; b.type = 'button'; b.textContent = 'Hiện thêm (' + (rows.length - S.show) + ')';
+      b.onclick = () => { S.show += 40; renderList(); }; m.appendChild(b); box.appendChild(m);
+    }
+  }
+  function rowEl(r) {
+    const it = document.createElement('div'); it.className = 'item';
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'row'; b.setAttribute('aria-expanded', S.open === r.id ? 'true' : 'false');
+    const stt = document.createElement('div'); stt.className = 'stt'; stt.textContent = pad(r.stt);
+    const pair = document.createElement('div'); pair.className = 'pair';
+    const a = document.createElement('div'); a.className = 'a'; a.textContent = r.code;
+    const bb = document.createElement('div'); bb.className = 'b'; bb.textContent = r.tem;
+    const meta = document.createElement('div'); meta.className = 'meta'; meta.textContent = [fmtTime(r.at), r.by].filter(Boolean).join(' · ') + ((r.vs === 'manual' || r.ts === 'manual') ? ' · có nhập tay' : '');
+    const rs = dupReasons(r);
+    pair.append(a, bb, meta);
+    if (rs.length) { const fl = document.createElement('div'); fl.className = 'flags'; rs.forEach((t) => { const c = document.createElement('span'); c.className = 'chip ' + (t === 'Trùng dãy 12 số' ? 'warn' : 'bad'); c.textContent = t; fl.appendChild(c); }); pair.appendChild(fl); }
+    b.append(stt, pair);
+    b.onclick = () => { S.open = S.open === r.id ? null : r.id; S.delArm = null; renderList(); if (S.open) loadPhoto(r); };
+    it.appendChild(b);
+    if (S.open === r.id) {
+      const d = document.createElement('div'); d.className = 'detail';
+      const ph = S.photos.get(r.id);
+      if (!r.hasPhoto) { const n = document.createElement('p'); n.className = 'note'; n.textContent = 'Cặp này không có ảnh.'; d.appendChild(n); }
+      else if (ph) { const im = document.createElement('img'); im.src = ph; im.alt = 'Ảnh valve cũ STT ' + pad(r.stt); d.appendChild(im); }
+      else { const n = document.createElement('p'); n.className = 'note'; n.textContent = 'Đang tải ảnh…'; d.appendChild(n); }
+      if (r.tp) { const n2 = document.createElement('p'); n2.className = 'note'; n2.textContent = 'Số in ngoài tem: ' + r.tp + (r.tpw ? ' (khác 6 số cuối QR)' : ''); d.appendChild(n2); }
+      const del = document.createElement('button'); del.type = 'button'; del.className = 'btn small quiet';
+      del.textContent = S.delArm === r.id ? 'Bấm lần nữa để xóa cặp này' : 'Xóa cặp này';
+      if (S.delArm === r.id) del.style.cssText = 'color:var(--bad);border-color:var(--bad)';
+      del.onclick = async () => {
+        if (S.delArm !== r.id) { S.delArm = r.id; renderList(); setTimeout(() => { if (S.delArm === r.id) { S.delArm = null; renderList(); } }, 4000); return; }
+        try {
+          const x = await rpc('api_delete', r.stt);
+          if (x && x.error === 'busy') { setMsg('Nhiều người đang lưu cùng lúc. Bấm xóa lại.', 'bad'); return; }
+          S.open = null; S.delArm = null; setMsg('Đã xóa STT ' + pad(r.stt) + '.', 'idle'); await loadList(true);
+        } catch (e) { setMsg('Không xóa được. Thử lại.', 'bad'); }
+      };
+      d.appendChild(del); it.appendChild(d);
+    }
+    return it;
+  }
+  async function loadPhoto(r) {
+    if (S.photos.has(r.id) || !r.hasPhoto) return;
+    try { const x = await rpc('api_photo', r.stt); if (x && x.img) { S.photos.set(r.id, x.img); if (S.open === r.id) renderList(); } } catch (e) { }
+  }
+
+  /* ---------- data from the sheet ---------- */
+  let loading = false;
+  async function loadList(force) {
+    if (loading) return; loading = true;
+    try {
+      const r = await rpc('api_list', force ? '' : S.sig);
+      S.online = true; showBanner('');
+      if (!r.same) {
+        const arr = (r.rows || []).map((x) => ({ ...x, id: pad(x.stt) }));
+        arr.sort((a, b) => b.stt - a.stt);
+        S.rows = arr; indexPairs(arr); S.maxStt = arr.length ? arr[0].stt : 0;
+        r.rows && (S.sheetUrl = r.sheetUrl || S.sheetUrl);
+      }
+      S.sig = r.sig || S.sig; S.loaded = true;
+    } catch (e) {
+      S.online = false;
+      showBanner(e && e.message === 'no-api' ? 'Chưa gắn link máy chủ. Mở trang bằng link có đuôi ?api=LINK_EXEC hoặc điền GHEP_TEM_API ở đầu file index.html.' : S.loaded ? 'Mất kết nối máy chủ. Dữ liệu trên màn hình có thể chưa mới.' : 'Chưa kết nối được máy chủ lưu dữ liệu (Google Sheets). Kiểm tra mạng rồi bấm Thử lại.', true);
+    }
+    loading = false;
+    renderList(); renderSave(); renderValve(); renderTem();
+  }
+
+  /* ---------- save ---------- */
+  async function save() {
+    const v = validValve(), t = validTem(), name = $('who').value.trim();
+    if (!v || !t || !name || S.saving || !S.online) return;
+    S.saving = true; renderSave(); $('msg').dataset.sticky = '0'; setMsg('Đang lưu…', 'idle');
+    const code = v.valve + v.serial;
+    try {
+      const rec = { valve: v.valve, serial: v.serial, tem: t.code, tp: t.print || '', by: name, thumb: S.valve.thumb || '', vs: S.valve.src || 'ocr', ts: t.src || 'dm', confirmSerial: !!S.valve.confirmed };
+      const r = await rpc('api_save', rec);
+      if (r && r.error === 'dup') {
+        const d = r.dup || {};
+        if (d.type === 'serial') { S.valve.forceWarn = { valve: d.valve, stt: d.stt }; renderValve(); setMsg('Dãy 12 số trùng valve ' + d.valve + ' (STT ' + pad(d.stt) + '). Kiểm tra rồi tick xác nhận.', 'bad'); }
+        else if (d.type === 'tem') setMsg('Tem này vừa gắn cho valve ' + d.code + ' (STT ' + pad(d.stt) + ').', 'bad');
+        else setMsg('Mã ' + code + ' vừa được ghép với tem ' + d.tem + ' (STT ' + pad(d.stt) + ').', 'bad');
+        S.saving = false; await loadList(true); renderSave(); return;
+      }
+      if (r && r.error === 'busy') throw { msg: 'Nhiều người đang lưu cùng lúc. Bấm lưu lại.' };
+      if (!r || !r.ok) throw { msg: 'Lưu chưa được. Bấm lưu lại.' };
+      S.valve = null; S.tem = null; $('mValve').value = ''; $('mSerial').value = ''; $('mTem').value = ''; $('mPrint').value = '';
+      $('manValve').open = false; $('manTem').open = false;
+      S.saving = false; renderValve(); renderTem();
+      setMsg('Đã lưu STT ' + r.pad + ': ' + code + ' → ' + t.code, 'ok'); $('msg').dataset.sticky = '1';
+      setTimeout(() => { $('msg').dataset.sticky = '0'; renderSave(); }, 6000);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      loadList(true);
+    } catch (e) {
+      S.saving = false;
+      setMsg(e && e.msg ? e.msg : 'Chưa nhận được phản hồi. Xem danh sách bên dưới, chưa thấy thì bấm lưu lại.', 'bad');
+      loadList(true);
+    }
+    S.saving = false; renderSave();
+  }
+
+  /* ---------- export ---------- */
+  function stamp() { const d = new Date(), p = (x) => String(x).padStart(2, '0'); return d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '_' + p(d.getHours()) + p(d.getMinutes()); }
+  function offerFile(blob, name) {
+    const url = URL.createObjectURL(blob); const a = document.createElement('a');
+    a.href = url; a.download = name; document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 4000);
+  }
+  async function exportXlsx() {
+    if (!S.rows.length) { setMsg('Chưa có cặp nào để xuất.', 'idle'); return; }
+    const rows = S.rows.slice().sort((a, b) => a.stt - b.stt);
+    const head = ['STT', 'Mã chung valve cũ (L + 12 số)', 'Mã valve (L)', 'Dãy ngày giờ (12 số)', 'Số tem mới (in ngoài tem)', 'QR code mới (Data Matrix)', 'Người chụp', 'Thời gian lưu', 'Cảnh báo'];
+    const aoa = [head].concat(rows.map((r) => [pad(r.stt), r.code, r.valve, r.serial, r.tp || '', r.tem, r.by || '', r.at || '', dupReasons(r).concat(r.tpw ? ['Số in lệch QR'] : []).join(', ')]));
+    try {
+      if (!window.XLSX) { try { await loadScript(CDN.xlsx); } catch (e) { } }
+      if (window.XLSX) {
+        const ws = XLSX.utils.aoa_to_sheet(aoa);
+        ws['!cols'] = [{ wch: 7 }, { wch: 26 }, { wch: 14 }, { wch: 16 }, { wch: 22 }, { wch: 24 }, { wch: 16 }, { wch: 19 }, { wch: 34 }];
+        const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Ghep tem');
+        const data = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        offerFile(new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 'Ghep_tem_valve_' + stamp() + '.xlsx');
+      } else {
+        const csv = '﻿' + aoa.map((r) => r.map((c) => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\r\n');
+        offerFile(new Blob([csv], { type: 'text/csv;charset=utf-8' }), 'Ghep_tem_valve_' + stamp() + '.csv');
+      }
+      setMsg('Đã xuất ' + rows.length + ' cặp. Nếu máy không tải file, mở Google Sheet dữ liệu và chọn Tệp > Tải xuống > Excel.', 'ok'); $('msg').dataset.sticky = '0';
+    } catch (e) { setMsg('Chưa xuất được file. Mở Google Sheet dữ liệu và chọn Tệp > Tải xuống > Excel.', 'bad'); }
+  }
+
+  /* ---------- wiring ---------- */
+  $('who').value = store.get('ghepTemName');
+  $('who').addEventListener('input', () => { store.set('ghepTemName', $('who').value.trim()); renderSave(); });
+  $('find').addEventListener('input', (e) => { S.filter = e.target.value; S.show = 40; renderList(); });
+  $('btnSave').addEventListener('click', save);
+  $('btnExport').addEventListener('click', exportXlsx);
+  $('btnRetry').addEventListener('click', () => loadList(true));
+  $('btnReset').addEventListener('click', () => { S.tokenV++; S.tokenT++; S.valve = null; S.tem = null; $('manValve').open = false; $('manTem').open = false; renderValve(); renderTem(); renderSave(); });
+  $('deepValve').addEventListener('click', () => readValve(true));
+  $('chkSerial').addEventListener('change', (e) => { if (S.valve) S.valve.confirmed = e.target.checked; renderSave(); });
+  $('chkLook').addEventListener('change', (e) => { if (S.valve) S.valve.looked = e.target.checked; renderSave(); });
+  $('btnDup').addEventListener('click', () => {
+    S.dupOnly = !S.dupOnly; S.show = 40;
+    const n = S.rows.filter((r) => dupReasons(r).length).length;
+    $('btnDup').textContent = S.dupOnly ? 'Hiện tất cả' : 'Kiểm tra trùng';
+    $('btnDup').classList.toggle('ghost', S.dupOnly);
+    setMsg(S.dupOnly ? (n ? 'Có ' + n + ' cặp đang trùng, xem danh sách bên dưới.' : 'Không có cặp nào trùng.') : 'Đã hiện lại toàn bộ danh sách.', S.dupOnly && n ? 'bad' : 'idle');
+    $('msg').dataset.sticky = '0';
+    renderList();
+  });
+  // start loading the text reader as soon as someone taps a camera button, so it is ready when the photo comes back
+  $('btnValve').addEventListener('click', () => { getTess().catch(() => { }); });
+  $('btnTem').addEventListener('click', () => { getTess().catch(() => { }); });
+
+  $('fileValve').addEventListener('change', async (e) => {
+    const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return;
+    $('msg').dataset.sticky = '0';
+    $('mValve').value = ''; $('mSerial').value = ''; $('manValve').open = false;
+    S.valve = { phase: 'reading', thumb: '', ocrBlob: null, parsed: null, src: 'ocr', progress: 'Đang xử lý ảnh…' }; renderValve(); renderSave();
+    try { const p = await prep(f); S.valve.thumb = p.thumb; S.valve.ocrBlob = p.ocr; } catch (err) { S.valve.phase = 'done'; S.valve.err = 'Không mở được ảnh. Chụp lại.'; renderValve(); return; }
+    await readValve(false);
+  });
+  $('fileTem').addEventListener('change', async (e) => {
+    const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return;
+    $('msg').dataset.sticky = '0';
+    const my = ++S.tokenT;
+    S.tem = { phase: 'reading', thumb: '', code: '', count: 0, src: 'dm' }; renderTem(); renderSave();
+    try {
+      const p = await prep(f); if (my !== S.tokenT) return;
+      S.tem.thumb = p.thumb; renderTem();
+      const r = await decodeDM(p.big); if (my !== S.tokenT) return;
+      setEngine(r.engine);
+      if (r.list.length) { S.tem.code = r.list[0].text; S.tem.count = new Set(r.list.map((x) => x.text)).size; S.tem.box = r.list[0].box; S.tem.bigBlob = p.big.blob; }
+      else S.tem.err = r.engine === 'none' ? 'Thiết bị này chưa đọc được Data Matrix. Mở phần nhập tay bên dưới.' : '';
+    } catch (err) { S.tem.err = 'Không mở được ảnh. Chụp lại.'; }
+    S.tem.phase = 'done'; renderTem(); renderSave();
+    if (S.tem.code && RE_TEM.test(S.tem.code) && S.tem.box) readPrint(my);
+  });
+
+  $('useValve').addEventListener('click', () => {
+    const valve = $('mValve').value.trim().toUpperCase(), serial = $('mSerial').value.replace(/\D/g, '');
+    S.tokenV++;
+    if (!RE_VALVE.test(valve) || !RE_SERIAL.test(serial)) { S.valve = S.valve || { phase: 'done', thumb: '', ocrBlob: null }; S.valve.phase = 'done'; S.valve.parsed = { valve, serial, ok: false, issues: [!RE_VALVE.test(valve) ? 'mã L… phải là chữ L và 9 số' : '', !RE_SERIAL.test(serial) ? 'dãy ngày giờ phải đủ 12 số' : ''].filter(Boolean), alts: [] }; S.valve.src = 'manual'; renderValve(); renderSave(); return; }
+    S.valve = S.valve || { phase: 'done', thumb: '', ocrBlob: null };
+    S.valve.confirmed = false; S.valve.forceWarn = null; S.valve.looked = true;
+    S.valve.parsed = { valve, serial, time: '', date: '', ok: true, issues: [], needsLook: false, look: [], alts: [] }; S.valve.src = 'manual'; S.valve.phase = 'done'; renderValve(); renderSave();
+  });
+  $('useTem').addEventListener('click', () => {
+    const code = $('mTem').value.replace(/\D/g, '');
+    S.tokenT++;
+    S.tem = S.tem || { phase: 'done', thumb: '' }; S.tem.code = code; S.tem.count = 1; S.tem.src = 'manual'; S.tem.phase = 'done'; S.tem.err = '';
+    const pr = $('mPrint').value.replace(/\D/g, ''); S.tem.print = RE_TEM.test(pr) ? pr : ''; S.tem.printPhase = 'done'; S.tem.bigBlob = null;
+    renderTem(); renderSave();
+  });
+
+  /* ---------- start ---------- */
+  renderValve(); renderTem(); renderSave(); renderList();
+  setTimeout(() => { initZX().then(() => setEngine('wasm')).catch(() => setEngine('BarcodeDetector' in window ? 'native' : 'none')); }, 400);
+  loadList(true);
+  setInterval(() => { if (!document.hidden && !S.saving) loadList(false); }, 20000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) loadList(false); });
+})();
+</script>
+</body>
+</html>
